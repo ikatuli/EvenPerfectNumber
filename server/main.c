@@ -1,16 +1,9 @@
-#ifdef _WIN32 //Windows пока не работает
-#include <WinSock2.h>
-
-#else // linux
-
 #include <sys/types.h>
 #include <stdio.h>
 #include <sys/socket.h> 
 #include <netdb.h>
 #include <memory.h>
 #include <errno.h>
-
-#endif
 
 int main(int argc , char *argv[])
 {
@@ -55,12 +48,14 @@ int main(int argc , char *argv[])
 	
 	//*читаем данные из сокета
 	
-	char buffer[31];
+	int buffer[0];
     int counter = 0;
-    for(;;)
+	memset(buffer, 0, sizeof(buffer));
+    
+	for(;;)
     {
-            memset(buffer, 0, sizeof(char)*31);
-			int rc = recv(s1, buffer, 30, 0);
+            
+			int rc = recv(s1, buffer, sizeof(buffer)-1, 0);
             if( rc < 0 )
             {
                     if( errno == EINTR )
@@ -70,11 +65,11 @@ int main(int argc , char *argv[])
             }
             if( rc == 0 )
                     break;
-            printf("%s\n", buffer);
+            printf("%d\n", buffer[0]);
     }
     
     //Не забыть написать нормальный возврат
-    char response[] = "0";
+    int response[] = {0};
     if( sendto( s1, response, sizeof(response), 0, (struct sockaddr *)&addr, sizeof(addr) ) < 0 )
             perror("Error sending response");
     printf("Response send\n");
