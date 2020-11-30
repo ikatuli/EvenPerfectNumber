@@ -5,6 +5,25 @@
 #include <memory.h>
 #include <errno.h>
 
+unsigned long long luk (unsigned int number) //Тест Люка-Лемера
+{
+	unsigned long long L = 4;
+	unsigned long long mersenne =( 1ull << number) - 1;
+
+	for (unsigned long long  i = 1; i <= number-2; i++) //Проверка
+	{
+		L = (L * L - 2) % mersenne;
+	}
+
+	printf("Test: %lu \n",L);
+
+	if (L!=0) return 0;
+	else return (1ull << (number-1))*mersenne; //Если тест прошёл, то вычисляем положительное совершеное число.
+	
+
+	//return L;
+}
+
 int main(int argc , char *argv[])
 {
 	// Создание сокета
@@ -46,9 +65,10 @@ int main(int argc , char *argv[])
               return 0;
       }
 	
-	//*читаем данные из сокета
+	//*читаем данные из сокет
 	
-	int buffer[0];
+
+	unsigned int buffer[0];
     int counter = 0;
 	memset(buffer, 0, sizeof(buffer));
     
@@ -68,12 +88,12 @@ int main(int argc , char *argv[])
             printf("%d\n", buffer[0]);
     }
     
-    //Не забыть написать нормальный возврат
-    int response[] = {0};
+    unsigned long long response[] = {luk (buffer[0])};//отправляем данные на тест
+
     if( sendto( s1, response, sizeof(response), 0, (struct sockaddr *)&addr, sizeof(addr) ) < 0 )
             perror("Error sending response");
     printf("Response send\n");
-    
+	
 	return 0;
 }
 
