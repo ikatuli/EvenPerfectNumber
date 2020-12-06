@@ -57,6 +57,9 @@ int main(int argc , char *argv[])
               return 0;
       }
 
+	for(;;) //Этот цикл делает цикл получения данных по сети бесконечным. По карйней мере до нажатия ctrl+c
+	{
+
 	//сокет на чтение
 	int s1 = accept(socket_desc, NULL, NULL);
       if( s1 < 0 )
@@ -67,7 +70,6 @@ int main(int argc , char *argv[])
 	
 	//*читаем данные из сокет
 	
-
 	unsigned int buffer[0];
     int counter = 0;
 	memset(buffer, 0, sizeof(buffer));
@@ -93,6 +95,7 @@ int main(int argc , char *argv[])
     if( sendto( s1, response, sizeof(response), 0, (struct sockaddr *)&addr, sizeof(addr) ) < 0 )
             perror("Error sending response");
     printf("Response send\n");
+	}
 	
 	return 0;
 }
