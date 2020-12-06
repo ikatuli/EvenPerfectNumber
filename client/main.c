@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <netdb.h>
 
+#include <gtk/gtk.h>
+
+//Глобальные переменные для GUI
+GtkWidget *window;
+
 long long data_up (char *ip,int port, unsigned int number)
 {
 	// Создаём сокет
@@ -52,14 +57,35 @@ long long data_up (char *ip,int port, unsigned int number)
 	}
 }
 
-int main()
+void closeApp(GtkWidget *window, gpointer data) //Завершаем программу
 {
+    gtk_main_quit();
+
+}
+
+
+int main(int argc, char *argv[])
+{
+	gtk_init(&argc, &argv);
+
+
+    //Параметр окна
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "Laba");
+    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    gtk_window_set_default_size(GTK_WINDOW(window), 200, 100);
+    gtk_container_set_border_width(GTK_CONTAINER(window), 10);
+
 	//Отправляем чило и ждём ответа.
 	long long answer;
     answer = data_up ("127.0.0.1",18666,13);
 
 	//Если ответ равен нулю, значит ответ не найден.
 	if (answer!=0) printf ("Ответ: %lu \n",answer);
+
+	gtk_widget_show_all(window);
+
+	gtk_main();
 	
 	return 0;
 }
