@@ -19,16 +19,16 @@ long long data_up (char *ip,int port, unsigned int number)
     peer.sin_addr.s_addr = inet_addr( ip ); //шз
 
     int result = connect( s, ( struct sockaddr * )&peer, sizeof( peer ) );
-    if( result ) perror( "Не удалось подключиться connect" );
+    if( result ) {perror( "Не удалось подключиться connect" );return 0;}
 
 	//посылаем данные
 	
 	unsigned int buf[] = {number};
     result = send( s,buf, sizeof(buf), 0);
-    if( result <= 0 ) perror( "Ошибка при отправке данных" );
+    if( result <= 0 ) {perror( "Ошибка при отправке данных" );return 0;}
 
 	// закрываем соединения
-    if( shutdown(s, 1) < 0) perror("Ошибка при закрытие");
+    if( shutdown(s, 1) < 0) {perror("Ошибка при закрытие");return 0;}
 
     // читаем ответ
     fd_set readmask;
@@ -45,12 +45,12 @@ long long data_up (char *ip,int port, unsigned int number)
                   unsigned long long rezultat[0];
                       memset(rezultat, 0, 20*sizeof(rezultat));
                       int result = recv( s, rezultat, sizeof(rezultat) - 1, 0 );
-                      if( result < 0 ) perror("Error calling recv");
-                      if( result == 0 ) perror("Server disconnected");
+                      if( result < 0 ) {perror("Error calling recv");return 0;}
+                      if( result == 0 ) {perror("Server disconnected");return 0;}
                      
 					  return rezultat[0]; //Ответ
               }
-              if( FD_ISSET( 0, &readmask ) ) printf( "No server response" );
+              if( FD_ISSET( 0, &readmask ) ) {printf( "No server response" );return 0;}
 	}
 }
 
@@ -63,7 +63,6 @@ void closeApp(GtkWidget *window, gpointer data) //Завершаем прогр�
 //Данные для таблицы серверов
 typedef struct 
 {
-  gint   number;
   gchar *ip;
   gint   port;
 }
@@ -71,7 +70,6 @@ Item;
 
 enum
 {
-  COLUMN_ITEM_NUMBER,
   COLUMN_ITEM_IP,
   COLUMN_ITEM_PORT,
   NUM_ITEM_COLUMNS
@@ -83,7 +81,9 @@ enum
   NUM_NUMBER_COLUMNS
 };
 
-static GArray *articles = NULL;
+static GArray *articles = NULL; //Сюда мы запишем 
+GtkSpinButton *button2; //Количество чисел, которые нужно найти.
+GtkTextBuffer *buffer; //Буфер для вывода результата.
 
 //Элименты списка серверов по умолчанию.
 static void add_items (void)
@@ -92,7 +92,6 @@ static void add_items (void)
 
   g_return_if_fail (articles != NULL);
 
-  foo.number = 0;
   foo.ip = "127.0.0.1";
   foo.port = 18666;
   g_array_append_vals (articles, &foo, 1);
@@ -110,15 +109,13 @@ static GtkTreeModel * create_items_model (void)
   add_items ();
 
   /* create list store */
-  model = gtk_list_store_new (NUM_ITEM_COLUMNS,G_TYPE_INT,G_TYPE_STRING, G_TYPE_INT, G_TYPE_BOOLEAN); //Номер колонны, ip, port
+  model = gtk_list_store_new (NUM_ITEM_COLUMNS,/*G_TYPE_INT,*/G_TYPE_STRING, G_TYPE_INT, G_TYPE_BOOLEAN); //Номер колонны, ip, port
   /* add items */
   for (i = 0; i < articles->len; i++)
     {
       gtk_list_store_append (model, &iter);
 
       gtk_list_store_set (model, &iter,
-			              COLUMN_ITEM_NUMBER,
-			              g_array_index (articles, Item, i).number,
                           COLUMN_ITEM_IP,
                           g_array_index (articles, Item, i).ip,
                           COLUMN_ITEM_PORT,
@@ -190,18 +187,6 @@ static void cell_edited (GtkCellRendererText *cell, const gchar *path_string, co
 
   switch (column)
     {
-    case COLUMN_ITEM_NUMBER:
-      {
-        gint i;
-
-        i = gtk_tree_path_get_indices (path)[0];
-        g_array_index (articles, Item, i).number = atoi (new_text);
-
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter, column,
-                            g_array_index (articles, Item, i).number, -1);
-      }
-      break;
-
 	case COLUMN_ITEM_PORT:
 	  {
 		  gint i,val;
@@ -231,15 +216,6 @@ static void cell_edited (GtkCellRendererText *cell, const gchar *path_string, co
 static void add_columns (GtkTreeView  *treeview, GtkTreeModel *items_model, GtkTreeModel *numbers_model)//Добавляем колонны определённых типов и выбираем функции для их редактирования
 {
   GtkCellRenderer *renderer;
-
-  /* number column */
-  renderer = gtk_cell_renderer_combo_new ();
-  g_object_set (renderer, "model", numbers_model, "text-column", COLUMN_NUMBER_TEXT, "has-entry", FALSE, "editable", TRUE, NULL);
-  g_signal_connect (renderer, "edited", G_CALLBACK (cell_edited), items_model);
-  g_signal_connect (renderer, "editing-started",  G_CALLBACK (editing_started), NULL);
-  g_object_set_data (G_OBJECT (renderer), "column", GINT_TO_POINTER (COLUMN_ITEM_NUMBER));
-
-  gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview), -1, "Number", renderer,"text", COLUMN_ITEM_NUMBER, NULL);
 
   /* ip column */
   renderer = gtk_cell_renderer_text_new ();
@@ -272,7 +248,6 @@ static void add_item (GtkWidget *button, gpointer data)
 
   g_return_if_fail (articles != NULL);
 
-  foo.number = -1;
   foo.ip = g_strdup ("127.0.0.1");
   foo.port = 18666;
   g_array_append_vals (articles, &foo, 1);
@@ -293,7 +268,6 @@ static void add_item (GtkWidget *button, gpointer data)
 
   /* Set the data for the new row */
   gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                      COLUMN_ITEM_NUMBER, foo.number,
                       COLUMN_ITEM_IP, foo.ip,
                       COLUMN_ITEM_PORT, foo.port,
                       -1);
@@ -329,16 +303,47 @@ static void remove_item (GtkWidget *widget, gpointer data)
     }
 }
 //
+static void chot (GtkSpinButton *tmp)
+{
+	GtkTextIter iter;
+
+	printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
+	//gtk_text_buffer_set_text (buffer, "Тестируем", -1);
+	//Отправляем чило и ждём ответа.
+	long long answer;
+    //answer = data_up ("127.0.0.1",18666,13);
+	
+	char tmp_buffer[20];
+	
+	for (int i = 0; i < articles->len; i++) //Перебор всего массива серверов
+	{
+		answer=0;
+		answer = data_up (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port,5);
+		//printf ("Test: %lu \n",g_array_index (articles, Item, i).port);// Вот так можно получить доступ к массиву серверов.
+		if (answer!=0) 
+		{
+			sprintf(tmp_buffer, "%lu\n",answer); //Число в текстовый буфер
+			gtk_text_buffer_get_end_iter (buffer, &iter); // Обнаруживаем конец буфера
+			gtk_text_buffer_insert (buffer,&iter,tmp_buffer , -1); // Добавляем число в конец
+		} //printf ("Ответ: %lu \n",answer); //Если ответ равен нулю, значит ответ не найден.
+	}
+
+}
 
 int main(int argc, char *argv[])
 {
 	gtk_init(&argc, &argv);
-	GtkWidget *window,*hbox,*VboxServer,*HboxButton;
+	GtkWidget *window,*hbox,*VboxServer,*HboxButton,*VboxResolte,*HboxButtonResolte;
 	GtkWidget *treeview;
 	GtkTreeModel *items_model;
     GtkTreeModel *numbers_model;
 	GtkWidget *sw;
-	GtkWidget *button;
+	GtkWidget *button,*button1;
+
+	GtkWidget *view; //Для текста.
+	
+	
+	GtkAdjustment *adjustment;
 
 
     //Параметр окна
@@ -352,9 +357,13 @@ int main(int argc, char *argv[])
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); // Основной бокс;
 	VboxServer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5); //Бокс для серверов.
 	HboxButton = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); //Бокс для кнопок управления серверами
+	VboxResolte = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5); //Бокс для результата
+	HboxButtonResolte = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); //Бокс для конки начала вычисления.
 
 	gtk_box_pack_start(GTK_BOX(hbox),VboxServer,FALSE,FALSE,5);//Привязываем серверный бокс к главному
 	gtk_container_add(GTK_CONTAINER(window), hbox); // Привязываем главный бокс к окну.
+
+	gtk_box_pack_start(GTK_BOX(hbox),VboxResolte,FALSE,FALSE,5);//Бокс для результата
 	
 	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(closeApp), NULL); // Связываем действие "Закрыть окно" с дейтвием "Закрыть приложение".
 
@@ -390,13 +399,22 @@ int main(int argc, char *argv[])
     gtk_box_pack_start (GTK_BOX (HboxButton), button, TRUE, TRUE, 0);
 	
 	gtk_box_pack_start(GTK_BOX(VboxServer),HboxButton,FALSE,FALSE,5);//Кнопки в северный бокс
-	
-	//Отправляем чило и ждём ответа.
-	long long answer;
-    answer = data_up ("127.0.0.1",18666,13);
 
-	//Если ответ равен нулю, значит ответ не найден.
-	if (answer!=0) printf ("Ответ: %lu \n",answer);
+	adjustment = gtk_adjustment_new (5, 1, 100.0, 1.0, 5.0, 0.0);//Количество чисел
+	button2 = gtk_spin_button_new (adjustment, 1.0, 0);
+	gtk_container_add (GTK_CONTAINER (VboxResolte), button2);
+
+	//Текст
+	view = gtk_text_view_new ();
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	gtk_widget_set_size_request (view,250,150);
+	gtk_box_pack_start (GTK_BOX (HboxButtonResolte), view, TRUE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (VboxResolte), HboxButtonResolte, TRUE, TRUE, 0);
+
+	button1 = gtk_button_new_with_label ("Вычислить");
+    g_signal_connect (button1, "clicked",G_CALLBACK (chot), NULL);
+    gtk_box_pack_start (GTK_BOX (VboxResolte), button1, FALSE,FALSE, 0);//Добавляем кнопку начало вычисления.
+	//gtk_widget_set_size_request(button1,100,50);
 
 	gtk_widget_show_all(window);
 
