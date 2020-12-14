@@ -4,28 +4,53 @@
 #include <netdb.h>
 #include <memory.h>
 #include <errno.h>
+#include <math.h>
+#include <gmp.h>
 
-unsigned long long luk (unsigned int number) //Тест Люка-Лемера
+char * luk (unsigned int number) //Тест Люка-Лемера
 {
-	unsigned long long L = 4;
-	unsigned long long mersenne =( 1ull << number) - 1;
+	mpz_t L,tmp,mersenne;
+	mpz_init_set_ui(L,4);
+	mpz_init (tmp);	
+
+	//mersenne pow(2, q) - 1;
+	mpz_init_set_ui(mersenne,2);
+	mpz_pow_ui(mersenne,mersenne,number);//pow(2, q)
+	mpz_sub_ui(mersenne,mersenne,1);//pow(2, q) - 1
 
 	for (unsigned long long  i = 1; i <= number-2; i++) //Проверка
 	{
-		L = (L * L - 2) % mersenne;
+		mpz_mul (tmp,L,L);//L*L
+		mpz_sub_ui(tmp,tmp,2);//L*L-2
+		mpz_mod(L,tmp,mersenne);//(L*L-2) %mersenne
 	}
 
-	printf("Test: %lu \n",L);
+	//char * mpz_get_str(char *str, intbase, mpztop)
 
-	if (L!=0) return 0;
-	else return (1ull << (number-1))*mersenne; //Если тест прошёл, то вычисляем положительное совершеное число.
-	
+	//gmp_printf("Test: %Zd \n",L);
 
-	//return L;
+	if (mpz_cmp_ui(L,0)!=0) return "0";
+	else 
+	{
+		mpz_t resolte;// 1ull << (number-1))*mersenne
+		mpz_init_set_ui(resolte,2);
+		mpz_pow_ui(resolte,resolte,number-1);
+		mpz_mul(resolte,resolte,mersenne);
+		//gmp_printf("Число: %Zd \n",resolte);
+		//printf("str: %s",mpz_get_str(NULL,10,resolte));
+		return mpz_get_str(NULL,10,resolte) ; //Если тест прошёл, то вычисляем положительное совершеное число.
+	}
+}
+
+int prime(unsigned int n) //Проверка на простоту
+{
+	for(unsigned int i=2;i<=sqrt(n);i++) if(n%i==0)	return 0;
+	return 1;
 }
 
 int main(int argc , char *argv[])
 {
+	//for (int i=3;i<14;i++) {char * k=luk (i);printf("%d: %s",i,k);}
 	// Создание сокета
 	int socket_desc;
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0); //ipv4 
@@ -89,12 +114,15 @@ int main(int argc , char *argv[])
                     break;
             printf("%d\n", buffer[0]);
     }
-    
-    unsigned long long response[] = {luk (buffer[0])};//отправляем данные на тест
 
-    if( sendto( s1, response, sizeof(response), 0, (struct sockaddr *)&addr, sizeof(addr) ) < 0 )
+	char * response = "0";
+    if (prime(buffer[0]) == 1)  response = luk (buffer[0]);//отправляем данные на тест
+
+	printf("size: %d", strlen(response));
+
+    if( sendto( s1, response, strlen(response), 0, (struct sockaddr *)&addr, sizeof(addr) ) < 0 )
             perror("Error sending response");
-    printf("Response send\n");
+    printf("Response send: %s\n",response);
 	}
 	
 	return 0;

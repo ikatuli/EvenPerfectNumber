@@ -3,10 +3,14 @@
 #include <memory.h>
 #include <stdio.h>
 #include <netdb.h>
-
+#include <pthread.h>
 #include <gtk/gtk.h>
 
-long long data_up (char *ip,int port, unsigned int number)
+#define ERROR_CREATE_THREAD -11 // для потоков.
+#define ERROR_JOIN_THREAD   -12
+#define SUCCESS        0
+
+const char * data_up (char *ip,int port, unsigned int number)
 {
 	// Создаём сокет
 	int s = socket( AF_INET, SOCK_STREAM, 0 );
@@ -19,16 +23,16 @@ long long data_up (char *ip,int port, unsigned int number)
     peer.sin_addr.s_addr = inet_addr( ip ); //шз
 
     int result = connect( s, ( struct sockaddr * )&peer, sizeof( peer ) );
-    if( result ) {perror( "Не удалось подключиться connect" );return 0;}
+    if( result ) {perror( "Не удалось подключиться connect" );return "0";}
 
 	//посылаем данные
 	
 	unsigned int buf[] = {number};
     result = send( s,buf, sizeof(buf), 0);
-    if( result <= 0 ) {perror( "Ошибка при отправке данных" );return 0;}
+    if( result <= 0 ) {perror( "Ошибка при отправке данных" );return "0";}
 
 	// закрываем соединения
-    if( shutdown(s, 1) < 0) {perror("Ошибка при закрытие");return 0;}
+    if( shutdown(s, 1) < 0) {perror("Ошибка при закрытие");return "0";}
 
     // читаем ответ
     fd_set readmask;
@@ -42,15 +46,22 @@ long long data_up (char *ip,int port, unsigned int number)
         if( select(s + 1, &readmask, NULL, NULL, NULL ) <= 0 ) perror("Error calling select");
         if( FD_ISSET( s, &readmask ) )
               {
-                  unsigned long long rezultat[0];
-                      memset(rezultat, 0, 20*sizeof(rezultat));
+				      static char rezultat[200]; // Ограничение на количество символов, которые  принимает программа.(Может стать проблемой)
+					  /* Суть проблемы такова. 
+					   * Сокиты очень низкоуровневые и не могут сами понять, сколько данных им нужно принимать. 
+					   * По хорошему нужно  отправить инфу о размере данных. Клиент принимает это и делает массив нужного размера.
+					   * Но я такое написать не успею. 
+					   */
+                      memset(rezultat, 0, 200*sizeof(char));
                       int result = recv( s, rezultat, sizeof(rezultat) - 1, 0 );
-                      if( result < 0 ) {perror("Error calling recv");return 0;}
-                      if( result == 0 ) {perror("Server disconnected");return 0;}
-                     
-					  return rezultat[0]; //Ответ
+                      if( result < 0 ) {perror("Error calling recv");return "0";}
+                      if( result == 0 ) {perror("Server disconnected");return "0";}
+                      
+					  printf("srt:%s\n", rezultat);
+					  
+					  return rezultat; //Ответ
               }
-              if( FD_ISSET( 0, &readmask ) ) {printf( "No server response" );return 0;}
+              if( FD_ISSET( 0, &readmask ) ) {printf( "No server response" );return "0";}
 	}
 }
 
@@ -310,22 +321,26 @@ static void chot (GtkSpinButton *tmp)
 	printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
 	//gtk_text_buffer_set_text (buffer, "Тестируем", -1);
 	//Отправляем чило и ждём ответа.
-	long long answer;
-    //answer = data_up ("127.0.0.1",18666,13);
+	char *answer;
 	
-	char tmp_buffer[20];
+	int j=3,k=0,i=0;
+	while (k<(gtk_spin_button_get_value_as_int (button2)+1))
+	{
 	
 	for (int i = 0; i < articles->len; i++) //Перебор всего массива серверов
 	{
-		answer=0;
-		answer = data_up (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port,5);
-		//printf ("Test: %lu \n",g_array_index (articles, Item, i).port);// Вот так можно получить доступ к массиву серверов.
-		if (answer!=0) 
+		answer="0";
+		answer = data_up (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port,j);
+		
+		if (strcmp (answer,"0")!=0) 
 		{
-			sprintf(tmp_buffer, "%lu\n",answer); //Число в текстовый буфер
+			k=k+1; //Мы нашли ещё одно число
 			gtk_text_buffer_get_end_iter (buffer, &iter); // Обнаруживаем конец буфера
-			gtk_text_buffer_insert (buffer,&iter,tmp_buffer , -1); // Добавляем число в конец
-		} //printf ("Ответ: %lu \n",answer); //Если ответ равен нулю, значит ответ не найден.
+			gtk_text_buffer_insert (buffer,&iter,answer, -1); // Добавляем число в конец
+			gtk_text_buffer_insert (buffer,&iter,"\n", -1);
+		}
+		j=j+1;
+	}
 	}
 
 }
