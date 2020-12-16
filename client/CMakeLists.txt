@@ -14,5 +14,5 @@ LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
 # Добавим флаги компиляции.
 ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 
-target_link_libraries(client ${GTK3_LIBRARIES})
+target_link_libraries(client ${GTK3_LIBRARIES} pthread)
 

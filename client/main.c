@@ -10,7 +10,13 @@
 #define ERROR_JOIN_THREAD   -12
 #define SUCCESS        0
 
-const char * data_up (char *ip,int port, unsigned int number)
+typedef struct Args_data { //Аргументы для потока.
+	int socet;
+    unsigned int number;
+} Args_d;
+
+
+int getServerSocket (char *ip,int port)
 {
 	// Создаём сокет
 	int s = socket( AF_INET, SOCK_STREAM, 0 );
@@ -23,16 +29,23 @@ const char * data_up (char *ip,int port, unsigned int number)
     peer.sin_addr.s_addr = inet_addr( ip ); //шз
 
     int result = connect( s, ( struct sockaddr * )&peer, sizeof( peer ) );
-    if( result ) {perror( "Не удалось подключиться connect" );return "0";}
+    if( result ) {perror( "Не удалось подключиться connect" );return 0;}
+	printf ("{%d}",s);
+    return s;
+}
 
-	//посылаем данные
-	
-	unsigned int buf[] = {number};
-    result = send( s,buf, sizeof(buf), 0);
+void * data_up (void * args)
+{
+	Args_d *arg=(Args_d *) args;
+	int s =arg->socet;
+	//посылаем данные	
+	unsigned int buf[] = {arg->number};
+	printf ("Сокет: %d Номер: %lu \n",arg->socet,arg->number);
+    int result = send(s,buf, sizeof(buf), 0);
     if( result <= 0 ) {perror( "Ошибка при отправке данных" );return "0";}
-
-	// закрываем соединения
-    if( shutdown(s, 1) < 0) {perror("Ошибка при закрытие");return "0";}
+	
+	if( shutdown(s, 1) < 0) {perror("Ошибка при закрытие");return "0";}
+	
 
     // читаем ответ
     fd_set readmask;
@@ -313,25 +326,40 @@ static void remove_item (GtkWidget *widget, gpointer data)
       gtk_tree_path_free (path);
     }
 }
-//
+
 static void chot (GtkSpinButton *tmp)
 {
 	GtkTextIter iter;
 
-	printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
-	//gtk_text_buffer_set_text (buffer, "Тестируем", -1);
+	//printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
+	gtk_text_buffer_set_text (buffer, "Start\n", -1);
 	//Отправляем чило и ждём ответа.
 	char *answer;
-	
+	int status;
+	pthread_t threads[(articles->len)+1];//Количество потоков равно количеству серверов.
+	Args_d* args[(articles->len)+1]; //Аргументы
+
 	int j=3,k=0,i=0;
 	while (k<(gtk_spin_button_get_value_as_int (button2)+1))
 	{
 	
-	for (int i = 0; i < articles->len; i++) //Перебор всего массива серверов
+	for (int i = 0; i < (articles->len); i++) //Перебор всего массива серверов
+	{
+		args[i]=malloc(sizeof(Args_d));
+		args[i]->number=j;
+		args[i]->socet=getServerSocket (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port);
+		printf("/%d/%lu|\n",args[i]->socet,args[i]->number);
+		status = pthread_create(&threads[i], NULL, data_up, args[i]);
+		j=j+1;
+	}
+	
+	
+	for (int i = 0; i < (articles->len); i++) //Звершение всех потоков.
 	{
 		answer="0";
-		answer = data_up (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port,j);
-		
+		status = pthread_join(threads[i], (void**)&answer);
+		free(args[i]);
+		printf("%s\n", answer);
 		if (strcmp (answer,"0")!=0) 
 		{
 			k=k+1; //Мы нашли ещё одно число
@@ -339,10 +367,8 @@ static void chot (GtkSpinButton *tmp)
 			gtk_text_buffer_insert (buffer,&iter,answer, -1); // Добавляем число в конец
 			gtk_text_buffer_insert (buffer,&iter,"\n", -1);
 		}
-		j=j+1;
 	}
 	}
-
 }
 
 int main(int argc, char *argv[])
