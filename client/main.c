@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <time.h>
 #include <gtk/gtk.h>
 
 #define ERROR_CREATE_THREAD -11 // для потоков.
@@ -332,7 +333,7 @@ static void chot (GtkSpinButton *tmp)
 	GtkTextIter iter;
 
 	//printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
-	gtk_text_buffer_set_text (buffer, "Start\n", -1);
+	gtk_text_buffer_set_text (buffer, "Start\n---\n", -1);
 	//Отправляем чило и ждём ответа.
 	char *answer;
 	int status;
@@ -340,6 +341,9 @@ static void chot (GtkSpinButton *tmp)
 	Args_d* args[(articles->len)+1]; //Аргументы
 
 	int j=3,k=0,i=0;
+
+	clock_t begin = clock();
+
 	while (k<(gtk_spin_button_get_value_as_int (button2)+1))
 	{
 	
@@ -369,6 +373,14 @@ static void chot (GtkSpinButton *tmp)
 		}
 	}
 	}
+
+	clock_t end = clock();//Подсчёт времени выполнения.
+	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	gtk_text_buffer_get_end_iter (buffer, &iter);
+	char buffer_tmp [50];
+	sprintf (buffer_tmp, "---\nВремя: %f mc\n",(double)(end - begin) / CLOCKS_PER_SEC);
+	gtk_text_buffer_insert (buffer,&iter,buffer_tmp, -1);
+
 }
 
 int main(int argc, char *argv[])
