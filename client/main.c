@@ -225,10 +225,25 @@ static void cell_edited (GtkCellRendererText *cell, const gchar *path_string, co
     case COLUMN_ITEM_IP:
       {
 		gint i;
+        gchar *old_text;
+
+        gtk_tree_model_get (model, &iter, column, &old_text, -1);
+        g_free (old_text);
+
+        i = gtk_tree_path_get_indices (path)[0];
+        //g_free (g_array_index (articles, Item, i).ip);
+        g_array_index (articles, Item, i).ip = g_strdup (new_text);
+
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter, column, g_array_index (articles, Item, i).ip, -1);
+		/*gint i;
+
+		i = gtk_tree_path_get_indices (path)[0];
         
         g_array_index (articles, Item, i).ip = new_text;
 
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter, column,g_array_index (articles, Item, i).ip, -1);
+		printf("IP:%d, i:%d",g_array_index (articles, Item, i).ip,i);
+
+        gtk_list_store_set (GTK_LIST_STORE (model), &iter, column,g_array_index (articles, Item, i).ip, -1);*/
       }
       break;
         
@@ -340,7 +355,7 @@ static void chot (GtkSpinButton *tmp)
 	pthread_t threads[(articles->len)+1];//Количество потоков равно количеству серверов.
 	Args_d* args[(articles->len)+1]; //Аргументы
 
-	int j=3,k=0,i=0;
+	int j=2,k=1,i=0;
 
 	clock_t begin = clock();
 
@@ -351,10 +366,10 @@ static void chot (GtkSpinButton *tmp)
 	{
 		args[i]=malloc(sizeof(Args_d));
 		args[i]->number=j;
-		args[i]->socet=getServerSocket (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port);
-		printf("/%d/%lu|\n",args[i]->socet,args[i]->number);
-		status = pthread_create(&threads[i], NULL, data_up, args[i]);
 		j=j+1;
+		args[i]->socet=getServerSocket (g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port);
+		printf("/%s|%d\n",g_array_index (articles, Item, i).ip,g_array_index (articles, Item, i).port);
+		status = pthread_create(&threads[i], NULL, data_up, args[i]);	
 	}
 	
 	
@@ -363,7 +378,6 @@ static void chot (GtkSpinButton *tmp)
 		answer="0";
 		status = pthread_join(threads[i], (void**)&answer);
 		free(args[i]);
-		printf("%s\n", answer);
 		if (strcmp (answer,"0")!=0) 
 		{
 			k=k+1; //Мы нашли ещё одно число

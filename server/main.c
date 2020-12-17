@@ -9,6 +9,7 @@
 
 char * luk (unsigned int number) //Тест Люка-Лемера
 {
+	if (number==2) return "6"; //Тест Люка-Лемера не работает с двойкой.ф
 	mpz_t L,tmp,mersenne;
 	mpz_init_set_ui(L,4);
 	mpz_init (tmp);	
@@ -48,9 +49,11 @@ int prime(unsigned int n) //Проверка на простоту
 	return 1;
 }
 
-int main(int argc , char *argv[])
+int main(int argc , char **argv[])
 {
-	//for (int i=3;i<14;i++) {char * k=luk (i);printf("%d: %s",i,k);}
+	int port=18666;
+	if (argc == 2) port=atoi(argv[1]); // Получаем параметр строки 
+	
 	// Создание сокета
 	int socket_desc;
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0); //ipv4 
@@ -65,7 +68,7 @@ int main(int argc , char *argv[])
 	struct sockaddr_in addr;
 
 	addr.sin_family = AF_INET;
-    addr.sin_port = htons(18666); // Порт
+    addr.sin_port = htons(port); // Порт 18666
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if( bind(socket_desc, (struct sockaddr *)&addr, sizeof(addr)) < 0 )
