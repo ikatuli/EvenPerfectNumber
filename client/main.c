@@ -27,7 +27,7 @@ int getServerSocket (char *ip,int port)
     struct sockaddr_in peer;
     peer.sin_family = AF_INET;
 	peer.sin_port = htons( port ); //Порт
-    peer.sin_addr.s_addr = inet_addr( ip ); //шз
+    peer.sin_addr.s_addr = inet_addr( ip ); //ip
 
     int result = connect( s, ( struct sockaddr * )&peer, sizeof( peer ) );
     if( result ) {perror( "Не удалось подключиться connect" );return 0;}
@@ -110,7 +110,7 @@ static GArray *articles = NULL; //Сюда мы запишем
 GtkSpinButton *button2; //Количество чисел, которые нужно найти.
 GtkTextBuffer *buffer; //Буфер для вывода результата.
 
-//Элименты списка серверов по умолчанию.
+//Элементы списка серверов по умолчанию.
 static void add_items (void)
 {
   Item foo;
@@ -231,19 +231,9 @@ static void cell_edited (GtkCellRendererText *cell, const gchar *path_string, co
         g_free (old_text);
 
         i = gtk_tree_path_get_indices (path)[0];
-        //g_free (g_array_index (articles, Item, i).ip);
         g_array_index (articles, Item, i).ip = g_strdup (new_text);
 
         gtk_list_store_set (GTK_LIST_STORE (model), &iter, column, g_array_index (articles, Item, i).ip, -1);
-		/*gint i;
-
-		i = gtk_tree_path_get_indices (path)[0];
-        
-        g_array_index (articles, Item, i).ip = new_text;
-
-		printf("IP:%d, i:%d",g_array_index (articles, Item, i).ip,i);
-
-        gtk_list_store_set (GTK_LIST_STORE (model), &iter, column,g_array_index (articles, Item, i).ip, -1);*/
       }
       break;
         
@@ -320,7 +310,7 @@ static void add_item (GtkWidget *button, gpointer data)
   gtk_tree_path_free (path);
 }
 
-//Удаляет сервре из списка
+//Удаляет сервер из списка
 static void remove_item (GtkWidget *widget, gpointer data)
 {
   GtkTreeIter iter;
@@ -347,9 +337,8 @@ static void chot (GtkSpinButton *tmp)
 {
 	GtkTextIter iter;
 
-	//printf ("adj: %d \n",gtk_spin_button_get_value_as_int (button2));// Считать значение форму
 	gtk_text_buffer_set_text (buffer, "Start\n---\n", -1);
-	//Отправляем чило и ждём ответа.
+	//Отправляем число и ждём ответа.
 	char *answer;
 	int status;
 	pthread_t threads[(articles->len)+1];//Количество потоков равно количеству серверов.
@@ -373,7 +362,7 @@ static void chot (GtkSpinButton *tmp)
 	}
 	
 	
-	for (int i = 0; i < (articles->len); i++) //Звершение всех потоков.
+	for (int i = 0; i < (articles->len); i++) //Завершение всех потоков.
 	{
 		answer="0";
 		status = pthread_join(threads[i], (void**)&answer);
@@ -481,7 +470,6 @@ int main(int argc, char *argv[])
 	button1 = gtk_button_new_with_label ("Вычислить");
     g_signal_connect (button1, "clicked",G_CALLBACK (chot), NULL);
     gtk_box_pack_start (GTK_BOX (VboxResolte), button1, FALSE,FALSE, 0);//Добавляем кнопку начало вычисления.
-	//gtk_widget_set_size_request(button1,100,50);
 
 	gtk_widget_show_all(window);
 

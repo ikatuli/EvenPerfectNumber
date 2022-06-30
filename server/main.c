@@ -9,7 +9,7 @@
 
 char * luk (unsigned int number) //Тест Люка-Лемера
 {
-	if (number==2) return "6"; //Тест Люка-Лемера не работает с двойкой.ф
+	if (number==2) return "6"; //Тест Люка-Лемера не работает с двойкой.
 	mpz_t L,tmp,mersenne;
 	mpz_init_set_ui(L,4);
 	mpz_init (tmp);	
@@ -37,9 +37,7 @@ char * luk (unsigned int number) //Тест Люка-Лемера
 		mpz_init_set_ui(resolte,2);
 		mpz_pow_ui(resolte,resolte,number-1);
 		mpz_mul(resolte,resolte,mersenne);
-		//gmp_printf("Число: %Zd \n",resolte);
-		//printf("str: %s",mpz_get_str(NULL,10,resolte));
-		return mpz_get_str(NULL,10,resolte) ; //Если тест прошёл, то вычисляем положительное совершеное число.
+		return mpz_get_str(NULL,10,resolte) ; //Если тест прошёл, то вычисляем положительное совершённое число.
 	}
 }
 
@@ -85,7 +83,7 @@ int main(int argc , char **argv[])
               return 0;
       }
 
-	for(;;) //Этот цикл делает цикл получения данных по сети бесконечным. По карйней мере до нажатия ctrl+c
+	for(;;) //Этот цикл делает цикл получения данных по сети бесконечным. По крайний мере до нажатия ctrl+c
 	{
 
 	//сокет на чтение
